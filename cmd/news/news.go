@@ -56,6 +56,7 @@ var NewsCmd = &cobra.Command{
 
 func init() {
 	NewsCmd.AddCommand(stockCmd)
+	NewsCmd.AddCommand(categoryCmd)
 
 	// Here you will define your flags and configuration settings.
 

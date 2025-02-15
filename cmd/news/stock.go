@@ -4,53 +4,30 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package news
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 )
 
-type news struct {
-	Id        int    `json:"newsId"`
-	Title     string `json:"title"`
-	PublishAt int64  `json:"publishAt"`
+type stockCommand struct {
+	newsCommand
 }
 
-type newsResponse struct {
-	Items struct {
-		LastPage int    `json:"last_page"`
-		Data     []news `json:"data"`
-	}
-}
-
-var newsMap = make(map[string][]news)
-
-func getNews(stock string) {
+func (c *stockCommand) getUrl(stock string) string {
 	var b strings.Builder
 	b.WriteString("https://api.cnyes.com/media/api/v1/newslist/TWS:")
 	b.WriteString(stock)
 	b.WriteString(":STOCK/symbolNews?page=1&limit=10")
-
-	resp, err := http.Get(b.String())
-	if err == nil {
-		body, err := io.ReadAll(resp.Body)
-		if err == nil {
-			var newsResponse newsResponse
-			err = json.Unmarshal(body, &newsResponse)
-			if err == nil {
-				newsMap[stock] = append(newsMap[stock], newsResponse.Items.Data...)
-			}
-		}
-	}
-	defer resp.Body.Close()
+	return b.String()
 }
 
-func printNews(idx int, publishAt int64, title string, newsId int) {
-	fmt.Printf("%d. %s %s https://news.cnyes.com/news/id/%d\n", idx+1, time.Unix(publishAt, 0).Format("01/02"), title, newsId)
+func newStockCommand() *stockCommand {
+	return &stockCommand{
+		newsCommand: newsCommand{
+			newsMap: make(map[string][]news),
+		},
+	}
 }
 
 // stockCmd represents the stock command
@@ -61,16 +38,17 @@ var stockCmd = &cobra.Command{
 台股代號清單請以逗號分隔，例如：2330,2317。`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		c := newStockCommand()
 		stockArg := args[0]
 		stockList := strings.Split(stockArg, ",")
 		for _, stock := range stockList {
-			getNews(stock)
+			c.getNews(stock, c.getUrl(stock))
 		}
 		// fmt.Printf("%+v\n", newsMap)
-		for stock, newsList := range newsMap {
+		for stock, newsList := range c.newsMap {
 			fmt.Printf("------%s------\n", stock)
 			for i, news := range newsList {
-				printNews(i, news.PublishAt, news.Title, news.Id)
+				c.printNews(i, news.PublishAt, news.Title, news.Id)
 			}
 		}
 	},

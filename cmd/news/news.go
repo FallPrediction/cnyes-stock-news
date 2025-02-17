@@ -26,6 +26,7 @@ type newsResponse struct {
 	Items struct {
 		Data []news `json:"data"`
 	}
+	StatusCode int `json:"statusCode"`
 }
 
 type newsCommand struct {
@@ -64,7 +65,7 @@ func (c *newsCommand) sendRequest(url string) newsResponse {
 // The return value means there could be more news published after the parameter publishAt.
 func (c *newsCommand) getNews(code string, url string, publishAt int64) bool {
 	newsResponse := c.sendRequest(url)
-	if len(newsResponse.Items.Data) == 0 {
+	if len(newsResponse.Items.Data) == 0 || newsResponse.StatusCode != 200 {
 		return false
 	}
 	c.newsMap[code] = append(c.newsMap[code], newsResponse.Items.Data...)

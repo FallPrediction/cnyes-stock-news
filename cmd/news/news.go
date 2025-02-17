@@ -5,6 +5,7 @@ package news
 
 import (
 	"cnyes-stock-news/helper"
+	"cnyes-stock-news/utils"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -48,8 +49,12 @@ func (c *newsCommand) sendRequest(url string) newsResponse {
 		}
 	}
 	body, err := io.ReadAll(resp.Body)
-	if err == nil {
-		json.Unmarshal(body, &newsResponse)
+	if err != nil {
+		utils.Logger.Error("Read response body failed ", err)
+	}
+	err = json.Unmarshal(body, &newsResponse)
+	if err != nil {
+		utils.Logger.Error("Unmarshal response body failed ", err)
 	}
 	defer resp.Body.Close()
 	return newsResponse

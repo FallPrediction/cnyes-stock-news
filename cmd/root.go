@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"cnyes-stock-news/cmd/news"
+	"cnyes-stock-news/utils"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -29,6 +30,7 @@ to quickly create a Cobra application.`,
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
+		utils.Logger.Fatal("Root command execute failed ", err)
 		os.Exit(1)
 	}
 }

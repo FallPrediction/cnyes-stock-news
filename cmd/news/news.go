@@ -31,26 +31,50 @@ type newsCommand struct {
 	newsMap map[string][]news
 }
 
-func (c *newsCommand) getNews(code string, url string) {
-	resp, err := http.Get(url)
-	if err == nil {
-		body, err := io.ReadAll(resp.Body)
-		if err == nil {
-			var newsResponse newsResponse
-			err = json.Unmarshal(body, &newsResponse)
-			if err == nil {
-				newsResponse.Items.Data = slices.DeleteFunc(newsResponse.Items.Data, func(n news) bool {
-					return !helper.Filter(n.Title, include, exclude, regex)
-				})
-				c.newsMap[code] = append(c.newsMap[code], newsResponse.Items.Data...)
-			}
+func (c *newsCommand) sendRequest(url string) newsResponse {
+	var (
+		retries      int = 3
+		resp         *http.Response
+		err          error
+		newsResponse newsResponse
+	)
+	for retries > 0 {
+		resp, err = http.Get(url)
+		if err != nil || resp.StatusCode != 200 {
+			retries--
+			continue
+		} else {
+			break
 		}
 	}
+	body, err := io.ReadAll(resp.Body)
+	if err == nil {
+		json.Unmarshal(body, &newsResponse)
+	}
 	defer resp.Body.Close()
+	return newsResponse
+}
+
+// Send request to get news.
+// The return value means there could be more news published after the parameter publishAt.
+func (c *newsCommand) getNews(code string, url string, publishAt int64) bool {
+	newsResponse := c.sendRequest(url)
+	if len(newsResponse.Items.Data) == 0 {
+		return false
+	}
+	c.newsMap[code] = append(c.newsMap[code], newsResponse.Items.Data...)
+	return c.newsMap[code][len(c.newsMap[code])-1].PublishAt > publishAt
 }
 
 func (c *newsCommand) printNews(idx int, publishAt int64, title string, newsId int) {
 	fmt.Printf("%d. %s %s https://news.cnyes.com/news/id/%d\n", idx+1, time.Unix(publishAt, 0).Format("01/02"), title, newsId)
+}
+
+func (c *newsCommand) filterNews(code string, publishAt int64) {
+	c.newsMap[code] = slices.DeleteFunc(c.newsMap[code], func(n news) bool {
+		// Remove news that is not matched the rules and has been posted for more than 24 hours
+		return !helper.Filter(n.Title, include, exclude, regex) || n.PublishAt < publishAt
+	})
 }
 
 var include []string

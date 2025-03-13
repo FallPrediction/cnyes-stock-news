@@ -6,6 +6,7 @@ package news
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -43,14 +44,25 @@ var stockCmd = &cobra.Command{
 		stockArg := args[0]
 		stockList := strings.Split(stockArg, ",")
 		past := time.Now().Add(time.Hour * -24).Unix()
+		ch := make(chan struct{}, 2)
+		var wg sync.WaitGroup
+		wg.Add(len(stockList))
 		for _, stock := range stockList {
-			for page := 1; page <= 3; page++ {
-				if moreNews := c.getNews(stock, c.getUrl(stock, page), past); !moreNews {
-					break
+			go func() {
+				ch <- struct{}{}
+				defer wg.Done()
+				for page := 1; page <= 3; page++ {
+					if moreNews := c.getNews(stock, c.getUrl(stock, page), past); !moreNews {
+						break
+					}
 				}
-			}
-			c.filterNews(stock, past)
+				c.filterNews(stock, past)
+				// Pause for 1 second between every two stocks to avoid too many requests.
+				time.Sleep(1 * time.Second)
+				<- ch
+			}()
 		}
+		wg.Wait()
 		// fmt.Printf("%+v\n", newsMap)
 		for stock, newsList := range c.newsMap {
 			fmt.Printf("------%s------\n", stock)

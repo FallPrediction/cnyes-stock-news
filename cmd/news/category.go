@@ -49,6 +49,8 @@ var categoryCmd = &cobra.Command{
 				}
 			}
 			c.filterNews(category, past)
+			// Pause for 1 second between every category to avoid too many requests.
+			time.Sleep(1 * time.Second)
 		}
 		// fmt.Printf("%+v\n", newsMap)
 		for category, newsList := range c.newsMap {

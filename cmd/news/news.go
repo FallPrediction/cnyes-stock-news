@@ -8,6 +8,7 @@ import (
 	"cnyes-stock-news/utils"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"io"
 	"net/http"
 	"slices"
@@ -15,6 +16,8 @@ import (
 
 	"github.com/spf13/cobra"
 )
+
+var mu sync.Mutex
 
 type news struct {
 	Id        int    `json:"newsId"`
@@ -68,7 +71,9 @@ func (c *newsCommand) getNews(code string, url string, publishAt int64) bool {
 	if len(newsResponse.Items.Data) == 0 || newsResponse.StatusCode != 200 {
 		return false
 	}
+	mu.Lock()
 	c.newsMap[code] = append(c.newsMap[code], newsResponse.Items.Data...)
+	mu.Unlock()
 	return c.newsMap[code][len(c.newsMap[code])-1].PublishAt > publishAt
 }
 

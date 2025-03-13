@@ -43,8 +43,10 @@ var categoryCmd = &cobra.Command{
 		categoryList := strings.Split(categoryArg, ",")
 		past := time.Now().Add(time.Hour * -24).Unix()
 		for _, category := range categoryList {
-			for i := 0; i < 5; i++ {
-				c.getNews(category, c.getUrl(category, i+1), past)
+			for page := 1; page <= 5; page++ {
+				if moreNews := c.getNews(category, c.getUrl(category, page), past); !moreNews {
+					break
+				}
 			}
 			c.filterNews(category, past)
 		}

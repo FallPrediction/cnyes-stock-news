@@ -44,8 +44,10 @@ var stockCmd = &cobra.Command{
 		stockList := strings.Split(stockArg, ",")
 		past := time.Now().Add(time.Hour * -24).Unix()
 		for _, stock := range stockList {
-			for i := 0; i < 3; i++ {
-				c.getNews(stock, c.getUrl(stock, i+1), past)
+			for page := 1; page <= 3; page++ {
+				if moreNews := c.getNews(stock, c.getUrl(stock, page), past); !moreNews {
+					break
+				}
 			}
 			c.filterNews(stock, past)
 		}
